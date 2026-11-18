@@ -1,0 +1,129 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="pull-right">
+        <a href="{{ admin_url }}" target="_blank" rel="noopener" class="btn btn-default"><i class="fa fa-external-link"></i> {{ t.button_neocarts_admin|e }}</a>
+        <button type="submit" form="form-neocarts" class="btn btn-primary"><i class="fa fa-save"></i> {{ t.button_save|e }}</button>
+        <a href="{{ cancel }}" class="btn btn-default"><i class="fa fa-reply"></i> {{ t.button_back|e }}</a>
+      </div>
+      <h1>{{ t.heading_title|e }}</h1>
+      <ul class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text|e }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if maintenance %}
+    <div class="alert alert-warning"><i class="fa fa-exclamation-triangle"></i> {{ t.warning_maintenance|e }}</div>
+    {% endif %}
+    {% if error_warning %}
+    <div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> {{ error_warning|e }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> {{ success|e }}
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endif %}
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <form action="{{ action }}" method="post" id="form-neocarts" class="form-horizontal" autocomplete="off">
+          <ul class="nav nav-tabs">
+            {% for tab in tabs %}
+            <li{% if loop.first %} class="active"{% endif %}><a href="#neocarts-tab-{{ tab.id }}" data-toggle="tab">{{ tab.title|e }}</a></li>
+            {% endfor %}
+          </ul>
+          <div class="tab-content">
+            {% for tab in tabs %}
+            <div class="tab-pane{% if loop.first %} active{% endif %}" id="neocarts-tab-{{ tab.id }}">
+              {% if tab.id == 'placement' %}
+              <div class="alert alert-info">{{ theme_notice|e }}</div>
+              <p class="help-block">{{ t.help_placement|e }} {{ t.help_options|e }} {{ t.help_selector_fallback|e }}</p>
+              <p class="help-block"><code>{{ t.help_slot|e }}</code></p>
+              {% endif %}
+              {% for f in tab.fields %}
+              {% if f.type == 'legend' %}
+              <legend>{{ f.label|e }}</legend>
+              {% else %}
+              <div class="form-group">
+                <label class="col-sm-3 control-label" for="input-{{ f.key }}">{{ f.label|e }}</label>
+                <div class="col-sm-9">
+                  {% if f.type == 'status' or f.type == 'bool' %}
+                  <select name="{{ f.name }}" id="input-{{ f.key }}" class="form-control">
+                    <option value="1"{% if f.value == '1' %} selected{% endif %}>{{ f.type == 'status' ? t.text_enabled|e : t.text_yes|e }}</option>
+                    <option value="0"{% if f.value != '1' %} selected{% endif %}>{{ f.type == 'status' ? t.text_disabled|e : t.text_no|e }}</option>
+                  </select>
+                  {% elseif f.type == 'position' %}
+                  <select name="{{ f.name }}" id="input-{{ f.key }}" class="form-control">
+                    {% for position in ['before', 'after', 'prepend', 'append'] %}
+                    <option value="{{ position }}"{% if f.value == position %} selected{% endif %}>{{ t['text_position_' ~ position]|e }}</option>
+                    {% endfor %}
+                  </select>
+                  {% elseif f.type == 'order_status' %}
+                  <select name="{{ f.name }}" id="input-{{ f.key }}" class="form-control">
+                    {% if f.key == 'status_partially_refunded' %}<option value="0">{{ t.text_none|e }}</option>{% endif %}
+                    {% for id, name in statuses %}
+                    <option value="{{ id }}"{% if f.value == id %} selected{% endif %}>{{ name|e }}</option>
+                    {% endfor %}
+                  </select>
+                  {% elseif f.type == 'textarea' %}
+                  <textarea name="{{ f.name }}" id="input-{{ f.key }}" rows="6" class="form-control" style="font-family:monospace">{{ f.value|e }}</textarea>
+                  {% elseif f.type == 'secret' %}
+                  <input type="password" name="{{ f.name }}" id="input-{{ f.key }}" value="" class="form-control" autocomplete="new-password"/>
+                  {% if (f.key == 'api_key' and key_set) or (f.key == 'webhook_secret' and secret_set) %}
+                  <span class="label label-success">{{ t.text_api_key_set|e }}</span>
+                  {% endif %}
+                  {% else %}
+                  <input type="text" name="{{ f.name }}" id="input-{{ f.key }}" value="{{ f.value|e }}" class="form-control"/>
+                  {% endif %}
+                  {% if f.help %}<p class="help-block">{{ f.help|e }}</p>{% endif %}
+                </div>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              {% if tab.id == 'connection' %}
+              <div class="form-group">
+                <label class="col-sm-3 control-label" for="input-webhook-url">{{ t.entry_webhook_url|e }}</label>
+                <div class="col-sm-9">
+                  <input type="text" id="input-webhook-url" value="{{ webhook_url|e }}" class="form-control" readonly onclick="this.select()"/>
+                  <p class="help-block">{{ t.help_webhook_url|e }}</p>
+                  <code>{{ webhook_url|e }}</code>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-sm-9 col-sm-offset-3">
+                  <button type="button" id="neocarts-check" class="btn btn-info">{{ t.button_check|e }}</button>
+                  <span id="neocarts-check-result" style="margin-left:8px"></span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-3 control-label">{{ t.text_version|e }}</label>
+                <div class="col-sm-9"><p class="form-control-static">{{ version }}</p></div>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </form>
+        {{ support }}
+      </div>
+    </div>
+  </div>
+<script type="text/javascript"><!--
+$('#neocarts-check').on('click', function () {
+  var $b = $(this), $r = $('#neocarts-check-result');
+  $b.prop('disabled', true);
+  $.getJSON('{{ check_url }}').done(function (json) {
+    $r.attr('class', json.status === 'ok' ? 'text-success' : 'text-danger').text(json.message);
+    if (json.support) $r.append(' ', $('<span></span>').html(json.support));
+  }).fail(function (xhr) {
+    $r.attr('class', 'text-danger').text(xhr.statusText);
+  }).always(function () { $b.prop('disabled', false); });
+});
+
+//--></script>
+</div>
+{{ footer }}

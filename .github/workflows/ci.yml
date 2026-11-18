@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'release/*']
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['7.1', '7.3', '8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, json, mbstring
+          coverage: none
+      # 2.3/3.0 adapters and the shared core must parse on 7.1; the 4.x adapter needs 8.0+
+      - name: Lint
+        run: |
+          dirs="src/shared src/oc2 src/oc3"
+          php -r 'exit(PHP_VERSION_ID >= 80000 ? 0 : 1);' && dirs="$dirs src/oc4"
+          find $dirs build -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: Unit tests
+        run: php -d error_reporting=-1 tests/php/run.php
+
+  e2e:
+    name: e2e (${{ matrix.shop }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shop: [oc2, oc3, oc4]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stand
+        run: |
+          cp .env.example .env
+          docker compose up -d --build db mock-core ${{ matrix.shop }}
+          port=$(docker compose port ${{ matrix.shop }} 80 | cut -d: -f2)
+          for i in $(seq 120); do curl -sf -o /dev/null "http://localhost:$port/" && break; sleep 2; done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=${{ matrix.shop }}
+        env:
+          E2E_SHOPS: ${{ matrix.shop }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.shop }}
+          path: playwright-report/
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [php, e2e]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip
+      - name: Check the tag matches VERSION and CHANGELOG
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v=$(cat VERSION)
+          [ "${GITHUB_REF_NAME}" = "v$v" ] || { echo "tag ${GITHUB_REF_NAME} != VERSION $v"; exit 1; }
+          grep -q "^## \[$v\]" CHANGELOG.md || { echo "CHANGELOG.md has no [$v] section"; exit 1; }
+      - run: php build/build.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neocarts-opencart
+          path: dist/*.zip
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(cat VERSION)
+          awk "/^## \[$v\]/{f=1;next} /^## \[/{f=0} f" CHANGELOG.md > notes.md
+          # «Latest» only for the highest stable version: a 1.x patch released after 2.0 must not
+          # become the download every link points to; X.Y.Z-beta.N is a pre-release
+          git fetch --tags --quiet
+          highest=$(git tag -l 'v*' | grep -v -- - | sed 's/^v//' | sort -V | tail -1)
+          flags="--latest=false"
+          case "$v" in *-*) flags="--prerelease --latest=false" ;; *) [ "$v" = "$highest" ] && flags="--latest" ;; esac
+          gh release create "v$v" dist/*.zip --title "v$v" --notes-file notes.md $flags

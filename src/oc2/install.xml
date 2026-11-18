@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OpenCart 2.3: the plugin works through events only; this manifest edits no files. -->
+<modification>
+  <name>Neocarts — subscriptions</name>
+  <code>neocarts</code>
+  <version>0.0.0</version>
+  <author>Neocarts</author>
+  <link>https://neocarts.com</link>
+</modification>

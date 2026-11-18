@@ -1,0 +1,14 @@
+.env
+.idea/
+node_modules/
+vendor/
+dist/
+test-results/
+playwright-report/
+.phpunit.result.cache
+# Docker mountpoints of the shared core inside the 4.x extension (docker-compose.yml)
+src/oc4/neocarts/system/library/neocarts/
+src/oc4/neocarts/catalog/view/javascript/neocarts/
+
+# local notes (context for future platform plugins)
+*.local.md

@@ -1,0 +1,1 @@
+<p class="text-muted neocarts-support" style="margin-top:15px"><i class="fa fa-life-ring"></i> <?php echo $support; ?> · <a href="<?php echo htmlspecialchars($docs_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($text_docs, ENT_QUOTES, 'UTF-8'); ?></a></p>

@@ -1,0 +1,7 @@
+{
+  "name": "Neocarts — subscriptions",
+  "description": "Subscriptions for OpenCart through Neocarts: the subscribe widget, Neocarts checkout, orders from webhooks.",
+  "version": "0.0.0-dev",
+  "author": "Neocarts",
+  "link": "https://neocarts.com"
+}

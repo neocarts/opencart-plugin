@@ -1,0 +1,100 @@
+# Demo stand: OpenCart 2.3 / 3.0 / 4.1 with the plugin source mounted live. docs/ai/docker.md
+x-oc: &oc
+  depends_on: [db]
+  env_file: .env
+  # glibc's parallel A/AAAA lookup races on Docker DNS: curl to mock-core-ocN stalled 5 s
+  dns_opt: [single-request-reopen]
+  environment: &oc-env
+    DB_HOST: db
+    DB_ROOT_PASSWORD: root
+
+services:
+  db:
+    image: mariadb:10.6
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db:/var/lib/mysql
+      - ./docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports: ["33306:3306"]
+
+  oc2:
+    <<: *oc
+    build:
+      context: docker/opencart
+      args:
+        PHP_IMAGE: php:7.1-apache
+        WITH_MCRYPT: "1"
+        OC_URL: https://github.com/opencart/opencart/releases/download/2.3.0.2/2.3.0.2-compiled.zip
+        OC_SHA256: 4b8e0c2132e158863edaa869442614c4cea1502aa4d22308bd8449d6befb6862
+    environment:
+      <<: *oc-env
+      DB_NAME: oc2
+      OC_URL: http://localhost:8082/
+    ports: ["8082:80"]
+    volumes:
+      - oc2:/var/www/html
+      - ./docker/opencart/uah.sql:/seed/uah.sql:ro
+      - ./src/oc2/upload:/plugin/upload:ro
+      - ./src/shared:/plugin/shared:ro
+
+  oc3:
+    <<: *oc
+    build:
+      context: docker/opencart
+      args:
+        PHP_IMAGE: php:8.2-apache
+        OC_URL: https://github.com/opencart/opencart/releases/download/3.0.5.1/opencart-3.0.5.1.zip
+        OC_SHA256: 4cc13139b75bc2b590614d58d4ec84ed69463d94cb99e64a9e2621c6f84c9fa8
+    environment:
+      <<: *oc-env
+      DB_NAME: oc3
+      OC_URL: http://localhost:8083/
+    ports: ["8083:80"]
+    volumes:
+      - oc3:/var/www/html
+      - ./docker/opencart/uah.sql:/seed/uah.sql:ro
+      - ./src/oc3/upload:/plugin/upload:ro
+      - ./src/shared:/plugin/shared:ro
+
+  oc4:
+    <<: *oc
+    build:
+      context: docker/opencart
+      args:
+        PHP_IMAGE: php:8.3-apache
+        OC_URL: https://github.com/opencart/opencart/releases/download/4.1.0.4/opencart-4.1.0.4.zip
+        OC_SHA256: cdef537f5a0a7e1b4ddbe16f589dd2e80b10150a09bfbe93ce76ef2d5c3218c0
+    environment:
+      <<: *oc-env
+      DB_NAME: oc4
+      OC_URL: http://localhost:8084/
+    ports: ["8084:80"]
+    volumes:
+      - oc4:/var/www/html
+      - ./docker/opencart/uah.sql:/seed/uah.sql:ro
+      - ./src/oc4/neocarts:/var/www/html/extension/neocarts
+      # nested mounts: the shared core where the 4.x build puts it (git-ignored mountpoints)
+      - ./src/shared:/var/www/html/extension/neocarts/system/library/neocarts:ro
+      - ./src/shared/js:/var/www/html/extension/neocarts/catalog/view/javascript/neocarts:ro
+
+  # in-memory Shop API for e2e (tests/e2e/mock-core.mjs), one per shop so runs never share state;
+  # shop ocN reaches its own as http://mock-core-ocN:8790, the host as localhost:879N
+  mock-core-oc2: &mock
+    image: node:22-alpine
+    command: node /app/mock-core.mjs
+    volumes:
+      - ./tests/e2e/mock-core.mjs:/app/mock-core.mjs:ro
+    ports: ["8792:8790"]
+  mock-core-oc3:
+    <<: *mock
+    ports: ["8793:8790"]
+  mock-core-oc4:
+    <<: *mock
+    ports: ["8794:8790"]
+
+volumes:
+  db:
+  oc2:
+  oc3:
+  oc4:

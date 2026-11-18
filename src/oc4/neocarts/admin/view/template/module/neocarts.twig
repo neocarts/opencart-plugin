@@ -1,0 +1,116 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="float-end">
+        <a href="{{ admin_url }}" target="_blank" rel="noopener" class="btn btn-light"><i class="fa-solid fa-arrow-up-right-from-square"></i> {{ t.button_neocarts_admin }}</a>
+        <button type="submit" form="form-neocarts" title="{{ t.button_save }}" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> {{ t.button_save }}</button>
+        <a href="{{ back }}" title="{{ t.button_back }}" class="btn btn-light"><i class="fa-solid fa-reply"></i></a>
+      </div>
+      <h1>{{ t.heading_title }}</h1>
+      <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+          <li class="breadcrumb-item"><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if maintenance %}
+      <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i> {{ t.warning_maintenance }}</div>
+    {% endif %}
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-pencil"></i> {{ t.heading_title }} <span class="float-end text-muted">{{ t.text_version }}: {{ version }}</span></div>
+      <div class="card-body">
+        <form id="form-neocarts" action="{{ save }}" method="post" data-oc-toggle="ajax">
+          <ul class="nav nav-tabs">
+            {% for tab, fields in tabs %}
+              <li class="nav-item"><a href="#tab-nc-{{ tab }}" data-bs-toggle="tab" class="nav-link{% if loop.first %} active{% endif %}">{{ attribute(t, 'tab_' ~ tab) }}</a></li>
+            {% endfor %}
+          </ul>
+          <div class="tab-content">
+            {% for tab, fields in tabs %}
+              <div class="tab-pane{% if loop.first %} active{% endif %}" id="tab-nc-{{ tab }}">
+                {% if tab == 'connection' %}
+                  <div class="row mb-3">
+                    <label class="col-sm-3 col-form-label">{{ t.entry_webhook_url }}</label>
+                    <div class="col-sm-9">
+                      <div class="input-group">
+                        <input type="text" readonly value="{{ webhook_url|e }}" id="input-nc-webhook-url" class="form-control"/>
+                        <button type="button" class="btn btn-light" onclick="navigator.clipboard && navigator.clipboard.writeText($('#input-nc-webhook-url').val())"><i class="fa-regular fa-copy"></i></button>
+                      </div>
+                      <div class="form-text"><code>{{ webhook_url|e }}</code> — {{ t.help_webhook_url }}</div>
+                    </div>
+                  </div>
+                {% endif %}
+                {% for f in fields %}
+                  {% if f.type == 'legend' %}
+                    <fieldset><legend>{{ f.label }}</legend></fieldset>
+                  {% elseif f.type == 'code' %}
+                    <div class="alert alert-light"><code>{{ f.label|e }}</code></div>
+                  {% elseif f.type == 'note' %}
+                    <div class="alert alert-light">{{ f.label|e }}</div>
+                  {% else %}
+                    <div class="row mb-3">
+                      <label for="input-nc-{{ f.key }}" class="col-sm-3 col-form-label">{{ f.label }}</label>
+                      <div class="col-sm-9">
+                        {% if f.type == 'switch' %}
+                          <div class="form-check form-switch form-switch-lg">
+                            <input type="hidden" name="{{ prefix }}{{ f.key }}" value="0"/>
+                            <input type="checkbox" name="{{ prefix }}{{ f.key }}" value="1" id="input-nc-{{ f.key }}" class="form-check-input"{% if f.value %} checked{% endif %}/>
+                          </div>
+                        {% elseif f.type == 'select' %}
+                          <select name="{{ prefix }}{{ f.key }}" id="input-nc-{{ f.key }}" class="form-select">
+                            {% for value, name in f.options %}
+                              <option value="{{ value }}"{% if value == f.value %} selected{% endif %}>{{ name|e }}</option>
+                            {% endfor %}
+                          </select>
+                        {% elseif f.type == 'textarea' %}
+                          <textarea name="{{ prefix }}{{ f.key }}" rows="6" id="input-nc-{{ f.key }}" class="form-control font-monospace">{{ f.value|e }}</textarea>
+                        {% elseif f.type == 'secret' %}
+                          <input type="password" name="{{ prefix }}{{ f.key }}" value="" autocomplete="new-password" placeholder="{{ (f.key == 'api_key' ? key_set : secret_set) ? t.text_api_key_set : '' }}" id="input-nc-{{ f.key }}" class="form-control"/>
+                        {% else %}
+                          <input type="text" name="{{ prefix }}{{ f.key }}" value="{{ f.value|e }}" id="input-nc-{{ f.key }}" class="form-control"/>
+                        {% endif %}
+                        {% if f.help %}<div class="form-text">{{ f.help|e }}</div>{% endif %}
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+                {% if tab == 'connection' %}
+                  <div class="row mb-3">
+                    <div class="col-sm-9 offset-sm-3">
+                      <button type="button" id="button-nc-check" class="btn btn-secondary"><i class="fa-solid fa-plug"></i> {{ t.button_check }}</button>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </form>
+        <div class="text-muted small mt-3 neocarts-support"><i class="fa-regular fa-life-ring"></i> {{ support }} · <a href="{{ docs_url }}" target="_blank" rel="noopener">{{ t.text_docs }}</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript"><!--
+function ncAlert(json) {
+    $('.alert-dismissible').remove();
+    var ok = !!json['success'];
+    $('#alert').prepend('<div class="alert alert-' + (ok ? 'success' : 'danger') + ' alert-dismissible"><i class="fa-solid fa-' + (ok ? 'circle-check' : 'circle-exclamation') + '"></i> ' + $('<div>').text(json['success'] || json['error'] || '').html() + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+}
+
+$('#button-nc-check').on('click', function() {
+    var button = this;
+    $.ajax({
+        url: '{{ check }}',
+        dataType: 'json',
+        beforeSend: function() { $(button).button('loading'); },
+        complete: function() { $(button).button('reset'); },
+        success: ncAlert,
+        error: function(xhr, ajaxOptions, thrownError) { console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText); }
+    });
+});
+
+//--></script>
+{{ footer }}

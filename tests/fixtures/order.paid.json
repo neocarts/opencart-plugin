@@ -1,0 +1,56 @@
+{
+  "id": "019a0b7c-1f3e-7c1a-9c6e-0b9b1c2d3e50",
+  "event": "order.paid",
+  "created_at": "2026-10-04T09:14:05+00:00",
+  "shop_id": "7f3c2b1a-0d9e-4f8a-b7c6-d5e4f3a2b1c0",
+  "data": {
+    "id": "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b",
+    "number": "261004-48213",
+    "status": "paid",
+    "source": "widget",
+    "locale": "uk",
+    "items": [
+      {
+        "external_id": "42-1.5.8",
+        "title": "Apple Cinema 30\"",
+        "variant": "Select: Red, Checkbox: Checkbox 1",
+        "image_url": "http://localhost/image/cache/catalog/demo/apple_cinema_30-228x228.jpg",
+        "product_url": "http://localhost/index.php?route=product/product&product_id=42",
+        "price": 249000,
+        "quantity": 1,
+        "mode": "subscription",
+        "interval_value": 4,
+        "interval_unit": "week",
+        "discounted_price": 231570,
+        "subtotal": 249000,
+        "total": 231570
+      }
+    ],
+    "discount_percent": 7,
+    "contact": { "first_name": "Олена", "last_name": "Коваль", "email": "olena@example.com", "phone": "+380671234567" },
+    "delivery": {
+      "provider": "nova-poshta",
+      "type": "branch",
+      "data": {
+        "city": { "id": "c1", "external_id": "8d5a980d-391c-11dd-90d9-001a92567626", "name": "Київ" },
+        "branch": { "id": "b1", "external_id": "1ec09d88-e1c2-11e3-8c4a-0050568002cf", "name": "Відділення №1: вул. Пирогівський шлях, 135" }
+      },
+      "recipient": { "first_name": "Олена", "last_name": "Коваль", "phone": "+380671234567" }
+    },
+    "totals": { "items_total": 249000, "discount_total": 17430, "total": 231570 },
+    "subscription_ids": ["0199a1b3-5e6f-7a8b-9c0d-1e2f3a4b5c6d"],
+    "created_at": "2026-10-04T09:12:30+00:00",
+    "payment": {
+      "id": "0199a1b4-0a1b-7c2d-8e3f-4a5b6c7d8e9f",
+      "order_id": "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b",
+      "provider": "plata-by-mono",
+      "status": "success",
+      "amount": 231570,
+      "refunded_amount": 0,
+      "card_mask": "**** 4242",
+      "card_brand": "visa",
+      "created_at": "2026-10-04T09:12:41+00:00"
+    },
+    "confirmed_manually": false
+  }
+}

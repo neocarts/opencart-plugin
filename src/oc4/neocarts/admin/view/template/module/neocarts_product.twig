@@ -1,0 +1,15 @@
+<div class="card mt-3" id="neocarts-product">
+  <div class="card-header"><i class="fa-solid fa-repeat"></i> {{ t.heading_product_panel }}</div>
+  <div class="card-body">
+    <input type="hidden" name="neocarts_subscription_present" value="1"/>
+    {% for sw in switches %}
+      <div class="form-check form-switch">
+        <input type="checkbox" name="neocarts_subscription[{{ sw.id|e }}]" value="1" id="input-neocarts-subscription-{{ loop.index }}" class="form-check-input"{% if sw.on %} checked{% endif %}/>
+        <label for="input-neocarts-subscription-{{ loop.index }}" class="form-check-label">{{ sw.label|e }}</label>
+      </div>
+    {% endfor %}
+    <div class="form-text">{{ t.help_product_subscription }}</div>
+    <p class="mt-3 mb-0"><a href="{{ admin_url }}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> {{ t.text_neocarts_panel_link }}</a></p>
+    <div class="text-muted small mt-3 neocarts-support"><i class="fa-regular fa-life-ring"></i> {{ support }} · <a href="{{ docs_url }}" target="_blank" rel="noopener">{{ t.text_docs }}</a></div>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+# Sandbox: a clean OpenCart 4.1.0.4 for installing the plugin by hand (no plugin, no mock core).
+# Separate from the stand: own project, db and volumes, port 8090. docs/ai/docker.md «Sandbox for manual testing»
+name: neocarts-sandbox
+
+services:
+  # the stand's image (docker/opencart), same release and sha256 as oc4; only built, never run
+  base:
+    build:
+      context: ../opencart
+      args:
+        PHP_IMAGE: php:8.3-apache
+        OC_URL: https://github.com/opencart/opencart/releases/download/4.1.0.4/opencart-4.1.0.4.zip
+        OC_SHA256: cdef537f5a0a7e1b4ddbe16f589dd2e80b10150a09bfbe93ce76ef2d5c3218c0
+    scale: 0
+
+  db:
+    image: mariadb:10.6
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: opencart
+    volumes:
+      - db:/var/lib/mysql
+
+  web:
+    build:
+      context: .
+      additional_contexts:
+        base: service:base
+    depends_on: [db]
+    environment:
+      DB_HOST: db
+      DB_ROOT_PASSWORD: root
+      DB_NAME: opencart
+      OC_URL: http://localhost:8090/
+    ports: ["8090:80"]
+    volumes:
+      - web:/var/www/html
+      - ../opencart/uah.sql:/seed/uah.sql:ro
+
+volumes:
+  db:
+  web:

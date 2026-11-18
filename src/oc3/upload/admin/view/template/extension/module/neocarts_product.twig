@@ -1,0 +1,16 @@
+<div class="panel panel-default" id="neocarts-product-panel">
+  <div class="panel-heading">
+    <h3 class="panel-title"><i class="fa fa-refresh"></i> {{ t.heading_product_panel|e }}</h3>
+  </div>
+  <div class="panel-body">
+    <input type="hidden" name="neocarts_subscription_present" value="1"/>
+    {% for switch in switches %}
+    <div class="checkbox"{% if not loop.first %} style="margin-left:20px"{% endif %}>
+      <label><input type="checkbox" name="neocarts_subscription[{{ switch.id }}]" value="1"{% if switch.on %} checked{% endif %}/> {{ switch.label|e }}</label>
+    </div>
+    {% endfor %}
+    <p class="help-block">{{ t.help_product_subscription|e }}</p>
+    <p><a href="{{ admin_url }}" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> {{ t.text_neocarts_panel_link|e }}</a></p>
+    {{ support }}
+  </div>
+</div>
