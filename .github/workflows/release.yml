@@ -1,14 +1,17 @@
-# Changesets release bot (docs/ai/releasing.md). On main and on every release/N.x line:
+# Changesets release bot (docs/ai/releasing.md). Runs only after CI passed on main or a release/N.x
+# line, on exactly the commit CI tested:
 # - pending .changeset/*.md files → opens/updates the «🚀 Release …» pull request (version + CHANGELOG);
-# - that PR merged (no pending changesets) → tags vX.Y.Z; the tag starts ci.yml, which builds the
-#   three zips and creates the GitHub Release.
+# - that PR merged (no pending changesets) → tags vX.Y.Z, builds the three zips and creates the
+#   GitHub Release. Nothing is tagged or released from a red commit.
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main, 'release/*']
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency: release-${{ github.event.workflow_run.head_branch }}
 
 permissions:
   contents: write
@@ -16,10 +19,14 @@ permissions:
 
 jobs:
   release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -28,11 +35,45 @@ jobs:
       - run: npm ci
       - uses: changesets/action@v2
         with:
-          pr-title: 🚀 Release ${{ github.ref_name != 'main' && format('({0})', github.ref_name) || '' }}
+          pr-title: 🚀 Release ${{ github.event.workflow_run.head_branch != 'main' && format('({0})', github.event.workflow_run.head_branch) || '' }}
+          pr-base-branch: ${{ github.event.workflow_run.head_branch }}
           commit-message: Release new version
           publish-script: npx changeset git-tag
-          # ci.yml makes the GitHub Release with the zips
+          # the release with the zips is created below
           create-github-releases: false
           push-git-tags: true
-          # a tag pushed with the default GITHUB_TOKEN would not start ci.yml: a bot token is needed
+          # a bot token, so the release PR it opens runs CI
           github-token: ${{ secrets.BOT_TOKEN }}
+
+      # The version is tagged and has no GitHub Release yet → build and publish it.
+      - name: Needs a release?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(node -p "require('./package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          git fetch --tags --quiet
+          if git rev-parse -q --verify "refs/tags/v$v" >/dev/null && ! gh release view "v$v" >/dev/null 2>&1; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: shivammathur/setup-php@v2
+        if: steps.check.outputs.release == 'true'
+        with:
+          php-version: '8.3'
+          extensions: zip
+      - name: Build and release
+        if: steps.check.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.check.outputs.version }}
+        run: |
+          grep -qx "## $V" CHANGELOG.md || { echo "CHANGELOG.md has no '## $V' section"; exit 1; }
+          php build/build.php
+          awk -v h="## $V" '$0==h{f=1;next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          # «Latest» only for the highest stable version: a 1.x patch released after 2.0 must not
+          # become the download every link points to; X.Y.Z-beta.N is a pre-release
+          highest=$(git tag -l 'v*' | grep -v -- - | sed 's/^v//' | sort -V | tail -1)
+          flags="--latest=false"
+          case "$V" in *-*) flags="--prerelease --latest=false" ;; *) [ "$V" = "$highest" ] && flags="--latest" ;; esac
+          gh release create "v$V" dist/*.zip --title "v$V" --notes-file notes.md --verify-tag $flags

@@ -14,20 +14,27 @@ user's other projects. Nobody edits the version, the changelog or tags by hand.
 
 ## A release
 
-1. Merging to `main` runs `.github/workflows/release.yml`. With pending changesets the bot opens or
-   updates the PR «🚀 Release» (`changeset-release/main`): it bumps `package.json`, writes
-   `CHANGELOG.md` (`## X.Y.Z` / `### Minor Changes` …) and deletes the changeset files.
-2. Merging that PR runs the bot again: no changesets left → `changeset git-tag` tags `vX.Y.Z`
-   (`privatePackages.tag`) and pushes it.
-3. The tag runs `ci.yml`: lint, unit, e2e on all three branches, then `build` checks
-   tag = `package.json` version and a `## X.Y.Z` changelog section, builds and creates the GitHub
-   Release with the three zips. «Latest» only for the highest stable version; `X.Y.Z-beta.N` is a
-   pre-release (`npx changeset pre enter beta` / `pre exit`).
+`ci.yml` only checks (lint, unit, e2e on all three branches, a build artifact); it never tags or
+publishes. `.github/workflows/release.yml` runs on `workflow_run` **after CI passed** on `main` or
+`release/*`, on the exact commit CI tested:
+
+1. Pending changesets → the bot opens or updates the PR «🚀 Release» (`changeset-release/<branch>`):
+   it bumps `package.json`, writes `CHANGELOG.md` (`## X.Y.Z` / `### Minor Changes` …) and deletes
+   the changeset files.
+2. Merging that PR → CI runs on the merge commit → when green, the bot runs `changeset git-tag`
+   (`privatePackages.tag`) and pushes `vX.Y.Z`.
+3. The same job sees a tag without a GitHub Release, checks the `## X.Y.Z` changelog section, builds
+   the three zips and creates the Release. «Latest» only for the highest stable version;
+   `X.Y.Z-beta.N` is a pre-release (`npx changeset pre enter beta` / `pre exit`). The step is
+   idempotent: a tag that already has a Release is skipped, a tag left without one (a failed run)
+   gets it on the next green CI.
 4. The docs agent updates `plugins/opencart/changelog` from `CHANGELOG.md`.
 
+Nothing is tagged or released from a red commit. Never tag by hand.
+
 **`BOT_TOKEN`** (repo secret): a token that can push and open PRs (a fine-grained PAT or a GitHub App
-token with contents + pull-requests write). A tag pushed with the default `GITHUB_TOKEN` does not
-start other workflows, so `ci.yml` would never build the release.
+token with contents + pull-requests write). The bot opens the release PR with it, so CI runs on that
+PR; a PR opened with the default `GITHUB_TOKEN` would not start CI.
 
 ## Major lines and fixes for an older major
 
