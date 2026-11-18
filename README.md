@@ -63,6 +63,7 @@ make up                # OpenCart 2.3 / 3.0 / 4.1 on :8082 / :8083 / :8084, logi
 make test              # unit tests on PHP 7.1 and 8.3
 make e2e               # browser tests on all three stores
 make build             # the three archives in dist/
+npx changeset          # describe your change for the next release
 ```
 
 How the project is built and the rules we follow: [`CLAUDE.md`](CLAUDE.md) and

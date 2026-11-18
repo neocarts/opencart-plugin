@@ -1,0 +1,38 @@
+# Changesets release bot (docs/ai/releasing.md). On main and on every release/N.x line:
+# - pending .changeset/*.md files → opens/updates the «🚀 Release …» pull request (version + CHANGELOG);
+# - that PR merged (no pending changesets) → tags vX.Y.Z; the tag starts ci.yml, which builds the
+#   three zips and creates the GitHub Release.
+name: Release
+
+on:
+  push:
+    branches: [main, 'release/*']
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: changesets/action@v2
+        with:
+          pr-title: 🚀 Release ${{ github.ref_name != 'main' && format('({0})', github.ref_name) || '' }}
+          commit-message: Release new version
+          publish-script: npx changeset git-tag
+          # ci.yml makes the GitHub Release with the zips
+          create-github-releases: false
+          push-git-tags: true
+          # a tag pushed with the default GITHUB_TOKEN would not start ci.yml: a bot token is needed
+          github-token: ${{ secrets.BOT_TOKEN }}

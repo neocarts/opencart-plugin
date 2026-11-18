@@ -30,4 +30,4 @@ Spawn one agent (general-purpose) at the end of the task with:
 | webhook sink, `OrderMapper.php`, statuses, mirror, admin subscriptions | `plugins/opencart/orders-and-webhooks` |
 | installer, manifests, Docker-tested versions, PHP minimum | `plugins/opencart/installation`, `plugins/opencart/overview` |
 | `README.md` (EN, the main one, links to the UK one at the top) + `README.uk.md` (UK): a short duplicate of the docs (versions, install, links) — keep both in line with `overview` / `installation` | — |
-| `VERSION`, `CHANGELOG.md` | `plugins/opencart/changelog`, `plugins/opencart/overview` (version table) |
+| `package.json` version, `CHANGELOG.md` (after a release PR) | `plugins/opencart/changelog`, `plugins/opencart/overview` (version table) |

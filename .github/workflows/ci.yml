@@ -7,6 +7,18 @@ on:
   pull_request:
 
 jobs:
+  # release/N.x is the maintenance line of major N: a changeset there must never bump it to N+1
+  branch-guard:
+    if: startsWith(github.base_ref || github.ref_name, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          branch="${{ github.base_ref || github.ref_name }}"
+          major="${branch#release/}"; major="${major%%.*}"
+          v=$(node -p "require('./package.json').version")
+          [ "${v%%.*}" = "$major" ] || { echo "$branch must stay on $major.x, package.json is $v"; exit 1; }
+
   php:
     name: PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
@@ -68,12 +80,12 @@ jobs:
         with:
           php-version: '8.3'
           extensions: zip
-      - name: Check the tag matches VERSION and CHANGELOG
+      - name: Check the tag matches package.json and CHANGELOG
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          v=$(cat VERSION)
-          [ "${GITHUB_REF_NAME}" = "v$v" ] || { echo "tag ${GITHUB_REF_NAME} != VERSION $v"; exit 1; }
-          grep -q "^## \[$v\]" CHANGELOG.md || { echo "CHANGELOG.md has no [$v] section"; exit 1; }
+          v=$(node -p "require('./package.json').version")
+          [ "${GITHUB_REF_NAME}" = "v$v" ] || { echo "tag ${GITHUB_REF_NAME} != package.json $v"; exit 1; }
+          grep -qx "## $v" CHANGELOG.md || { echo "CHANGELOG.md has no '## $v' section"; exit 1; }
       - run: php build/build.php
       - uses: actions/upload-artifact@v4
         with:
@@ -84,8 +96,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          v=$(cat VERSION)
-          awk "/^## \[$v\]/{f=1;next} /^## \[/{f=0} f" CHANGELOG.md > notes.md
+          v=$(node -p "require('./package.json').version")
+          awk -v h="## $v" '$0==h{f=1;next} /^## /{f=0} f' CHANGELOG.md > notes.md
           # «Latest» only for the highest stable version: a 1.x patch released after 2.0 must not
           # become the download every link points to; X.Y.Z-beta.N is a pre-release
           git fetch --tags --quiet

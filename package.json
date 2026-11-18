@@ -1,11 +1,14 @@
 {
   "name": "neocarts-opencart-plugin",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "changeset": "changeset"
   },
   "devDependencies": {
-    "@playwright/test": "1.65.1"
+    "@playwright/test": "1.65.1",
+    "@changesets/cli": "3.0.3"
   }
 }

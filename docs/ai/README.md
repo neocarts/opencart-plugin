@@ -16,7 +16,7 @@ Read the entry that matches your task before you start.
 | [`docker.md`](docker.md) | The demo stand: images, install on first start, how the plugin is linked in, resetting a shop. |
 | [`testing.md`](testing.md) | Writing or running tests: the PHP runner, the e2e suite, the mock core, the widget stub, settings backup. |
 | [`docs-site-sync.md`](docs-site-sync.md) | At the end of every task with a user-visible change: how to brief the separate docs agent, the map from code to docs pages. |
-| [`releasing.md`](releasing.md) | Bumping the version, the changelog, migrations, building and publishing the zips. |
+| [`releasing.md`](releasing.md) | Changesets, the release bot, tags, major lines (`release/N.x`), migrations, what the merchant installs. |
 
 ## Adding a document here
 

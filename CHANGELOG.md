@@ -1,15 +1,10 @@
-# Changelog
+# neocarts-opencart-plugin
 
-All notable changes to the Neocarts plugin for OpenCart. One version covers all three builds
-(2.3, 3.0, 4.x); an entry tagged `[oc2]`, `[oc3]` or `[oc4]` concerns that branch only.
+## 1.0.0
 
-## [Unreleased]
+The first release (2026-11-18).
 
-## [1.0.0] — 2026-11-18
-
-The first release.
-
-### Added
+### Major Changes
 - Subscribe buttons on the product page, product cards and cart lines; every placement can be
   switched off and moved by selector.
 - Neocarts checkout for carts with a subscription; carts without one keep the store's checkout.

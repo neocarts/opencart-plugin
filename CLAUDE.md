@@ -51,13 +51,14 @@ src/shared/js/      neocarts.js — the storefront, one file for all branches
 src/oc2/upload/     OpenCart 2.3 adapter (.tpl)
 src/oc3/upload/     OpenCart 3.0 adapter (.twig)
 src/oc4/neocarts/   OpenCart 4.x adapter (extension/neocarts)
-build/              build.php → dist/neocarts-oc{2,3,4}-<VERSION>.ocmod.zip; webhook-replay.php
+build/              build.php → dist/ (neocarts-oc2/oc3-<version>.ocmod.zip, neocarts.ocmod.zip); webhook-replay.php
 docker/             the demo stand image (one Dockerfile, branch via build args)
 tests/php/          dependency-free runner + *Test.php for src/shared
 tests/e2e/          Playwright: one suite, projects oc2/oc3/oc4; mock-core.mjs; shops/<branch>.js
 tests/fixtures/     webhook bodies (tests and make webhook-replay)
 docs/ai/            knowledge for agents
-VERSION, CHANGELOG.md
+.changeset/         Changesets: one file per user-visible change; the version is in package.json
+CHANGELOG.md        written by Changesets
 ```
 
 ## Commands
@@ -91,12 +92,13 @@ make sandbox-reset      # wipe the sandbox and rebuild it pristine · make sandb
 - **Money is never converted.** The shop's price goes out as is (`Money::minor()`), in the store's
   default currency; currency handling is Neocarts' job (`docs/ai/money.md`).
 - **Prices come from the shop's server** — the browser only says which lines are subscriptions.
-- **The price of running subscriptions is changed only by the merchant's click** («Update
-  subscription price»), never on product save.
+- **The plugin never sends a price for running subscriptions**: the merchant changes them in the
+  Neocarts panel; product save syncs the card only.
 - Orders from Neocarts are **ordinary OpenCart orders** created through OpenCart's own order model;
   only the payment method, the comment and the history mark the source.
 - **Secrets live only in `.env`** (git-ignored). Never put a key or a secret in code, tests, docs or a
   commit; the e2e suite uses fake ones.
-- Versioning: SemVer, one version for all three builds in `VERSION`; every user-visible change gets
-  a `CHANGELOG.md` line in the same task (`docs/ai/releasing.md`).
+- Versioning: SemVer, one version for all three builds in `package.json`, managed by Changesets:
+  every user-visible change adds `npx changeset` in the same task; the release bot does the
+  version, the changelog and the tag (`docs/ai/releasing.md`). Never edit them by hand.
 - Git: short imperative sentence-case subjects ("Add the cart line button"), no prefixes.

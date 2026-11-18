@@ -6,9 +6,9 @@
 //                                   extension code from the file name, so it must stay `neocarts`
 // The shared core, texts and storefront JS are copied into each. docs/ai/releasing.md
 $root = dirname(__DIR__);
-$version = trim(file_get_contents("$root/VERSION"));
+$version = (string) json_decode(file_get_contents("$root/package.json"), true)["version"]; // bumped by Changesets
 if (!preg_match('/^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$/', $version)) {
-    fwrite(STDERR, "VERSION is not X.Y.Z or X.Y.Z-beta.N: $version\n");
+    fwrite(STDERR, "package.json version is not X.Y.Z or X.Y.Z-beta.N: $version\n");
     exit(1);
 }
 

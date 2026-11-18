@@ -1,19 +1,51 @@
 # Releasing
 
-- **One SemVer version** for all three builds, in `VERSION`. MAJOR: settings or tables change
-  without a migration, or a branch is dropped. MINOR: a feature or a setting. PATCH: a fix.
-- `CHANGELOG.md` (Keep a Changelog): every user-visible change gets a line under `## [Unreleased]`
-  in the same task; tag `[oc2]`/`[oc3]`/`[oc4]` when it is not for every branch.
-- `build/build.php` writes the version into `NEOCARTS_VERSION` (`src/shared/php/autoload.php`),
-  `install.xml` (2.3/3.0), `install.json` (4.x) and the zip names.
-- **Migrations:** the stored setting `schema_version` is compared with the code on install and when
-  the module's admin page opens; numbered idempotent migrations run in order. Upgrading = uploading
-  the new zip over the old one, no uninstall; settings and data are kept.
-- The version is sent to the Shop API in `User-Agent: neocarts-opencart/X.Y.Z (oc …; php …)` and shown
-  in the admin, which checks the latest GitHub Release once a day (switchable).
-- Release: move `[Unreleased]` to `[X.Y.Z] — date`, bump `VERSION`, tag `vX.Y.Z`; CI checks
-  tag = `VERSION` and a changelog entry, builds, and attaches the three zips. Then the docs agent
-  updates `plugins/opencart/changelog`.
+Releases run on **Changesets** (`@changesets/cli` 3, `changesets/action@v2`), the same flow as the
+user's other projects. Nobody edits the version, the changelog or tags by hand.
+
+## Every change
+
+- A user-visible change adds a changeset in the same PR: `npx changeset` → `patch` (a fix), `minor`
+  (a feature or a setting), `major` (settings or tables change without a migration, an OpenCart
+  branch or a PHP version is dropped) + one line for merchants. Tag a branch-only change
+  `[oc2]`/`[oc3]`/`[oc4]`. `.changeset/README.md` says the same for humans.
+- The version lives in `package.json` (`version`, the only source). `build/build.php` writes it into
+  `NEOCARTS_VERSION`, `install.xml` (2.3/3.0), `install.json` (4.x) and the zip names.
+
+## A release
+
+1. Merging to `main` runs `.github/workflows/release.yml`. With pending changesets the bot opens or
+   updates the PR «🚀 Release» (`changeset-release/main`): it bumps `package.json`, writes
+   `CHANGELOG.md` (`## X.Y.Z` / `### Minor Changes` …) and deletes the changeset files.
+2. Merging that PR runs the bot again: no changesets left → `changeset git-tag` tags `vX.Y.Z`
+   (`privatePackages.tag`) and pushes it.
+3. The tag runs `ci.yml`: lint, unit, e2e on all three branches, then `build` checks
+   tag = `package.json` version and a `## X.Y.Z` changelog section, builds and creates the GitHub
+   Release with the three zips. «Latest» only for the highest stable version; `X.Y.Z-beta.N` is a
+   pre-release (`npx changeset pre enter beta` / `pre exit`).
+4. The docs agent updates `plugins/opencart/changelog` from `CHANGELOG.md`.
+
+**`BOT_TOKEN`** (repo secret): a token that can push and open PRs (a fine-grained PAT or a GitHub App
+token with contents + pull-requests write). A tag pushed with the default `GITHUB_TOKEN` does not
+start other workflows, so `ci.yml` would never build the release.
+
+## Major lines and fixes for an older major
+
+- Before the first `major` changeset lands on `main`, branch off the old line:
+  `git branch release/1.x v1.N.M && git push origin release/1.x`.
+- A fix for 1.x: land it (with its `patch` changeset) on `main` if it applies there, then
+  `git cherry-pick` it onto `release/1.x` (the changeset file comes along). The bot opens
+  «🚀 Release (release/1.x)» into that branch; merging it tags `v1.N.(M+1)`; CI releases it without
+  «Latest».
+- `ci.yml` → `branch-guard` fails when a `release/N.x` push or PR moves `package.json` off major N.
+- Each branch keeps its own `CHANGELOG.md`; the docs changelog page merges both lines.
+
+## Migrations and upgrades
+
+The stored setting `schema_version` is compared with `Schema::VERSION` on install and when the
+module's admin page opens; numbered idempotent migrations run in order. Upgrading = uploading the
+new package over the old one, no uninstall; settings and data are kept. A major may change tables,
+but only through `Schema::migrate`.
 
 ## What the merchant installs
 
@@ -25,21 +57,3 @@
   Install.
 - 4.x: `neocarts.ocmod.zip` — **the name must stay `neocarts.ocmod.zip`**: 4.x takes the extension
   code (and so the directory `extension/neocarts` and the PHP namespace) from the file name.
-
-## Branches and major versions
-
-- `main` is the next release. A patch or minor is cut from it: bump `VERSION`, move
-  `[Unreleased]` to `[X.Y.Z] — date`, commit, `git tag vX.Y.Z`, push the commit and the tag.
-- **A major release (2.0.0) that breaks something** (settings without a migration, a dropped
-  OpenCart branch or PHP version) first gets a maintenance branch for the old line:
-  `git branch release/1.x v1.N.M && git push origin release/1.x`. Then `main` goes to 2.0.0.
-- **A fix for the old line:** commit it on `main` first (if it applies there), then
-  `git switch release/1.x && git cherry-pick <sha>`. Bump `VERSION` to 1.N.(M+1), add a changelog
-  entry, tag `v1.N.(M+1)` **on that branch** and push. CI builds the tag the same way.
-- **«Latest» on GitHub:** CI marks a release «Latest» only when its tag is the highest stable
-  version, so `releases/latest` never jumps back to 1.x. `X.Y.Z-beta.N` is a pre-release (never
-  latest). `build.php` accepts both forms.
-- **CHANGELOG on the maintenance branch** lists only that line's releases. When 1.x gets a fix,
-  copy its entry into `main`'s CHANGELOG as well, so the docs changelog page stays complete.
-- **Merchants and DB schema:** a major may change tables, but only through `Schema::migrate`. An
-  upgrade from any 1.x to 2.0 must still work by uploading the new package over the old one.
