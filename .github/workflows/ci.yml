@@ -41,7 +41,7 @@ jobs:
       - name: Stand
         run: |
           cp .env.example .env
-          docker compose up -d --build db mock-core ${{ matrix.shop }}
+          docker compose up -d --build db mock-core-${{ matrix.shop }} ${{ matrix.shop }}
           port=$(docker compose port ${{ matrix.shop }} 80 | cut -d: -f2)
           for i in $(seq 120); do curl -sf -o /dev/null "http://localhost:$port/" && break; sleep 2; done
       - uses: actions/setup-node@v4
